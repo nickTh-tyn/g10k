@@ -10,6 +10,9 @@ github.com/gosuri/uilive
 # github.com/gosuri/uiprogress v0.0.1
 ## explicit
 github.com/gosuri/uiprogress/util/strutil
+# github.com/ietxaniz/delock v0.3.0
+## explicit; go 1.16
+github.com/ietxaniz/delock
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote

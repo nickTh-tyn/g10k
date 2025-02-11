@@ -149,13 +149,13 @@ func resolvePuppetEnvironment(tags bool, outputNameTag string) {
 								}
 							}
 
-							mutex.Lock()
+							lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 							if _, ok := allEnvironments[filepath.Join(sa.Basedir, prefix+renamedBranch)]; !ok {
 								allEnvironments[filepath.Join(sa.Basedir, prefix+renamedBranch)] = true
 							} else {
 								Fatalf("Renamed environment naming conflict detected with renamed environment " + prefix + renamedBranch)
 							}
-							mutex.Unlock()
+							mutex.Unlock(lockID)
 							targetDir := filepath.Join(sa.Basedir, prefix+strings.Replace(renamedBranch, "/", "_", -1))
 							targetDir = normalizeDir(targetDir)
 
@@ -184,13 +184,13 @@ func resolvePuppetEnvironment(tags bool, outputNameTag string) {
 								puppetfile.controlRepoBranch = branch
 								puppetfile.gitDir = workDir
 								puppetfile.gitURL = sa.Remote
-								mutex.Lock()
+								lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 								for _, moduleDir := range puppetfile.moduleDirs {
 									checkDirAndCreate(filepath.Join(puppetfile.workDir, moduleDir), "moduledir for env")
 								}
 								allPuppetfiles[env] = puppetfile
 								allBasedirs[sa.Basedir] = true
-								mutex.Unlock()
+								mutex.Unlock(lockID)
 
 							}
 						}
@@ -317,12 +317,12 @@ func resolvePuppetfile(allPuppetfiles map[string]Puppetfile) {
 		for _, moduleDir := range pf.moduleDirs {
 			moduleDir = normalizeDir(filepath.Join(pf.workDir, moduleDir))
 			exisitingModuleDirsFI, _ := os.ReadDir(moduleDir)
-			mutex.Lock()
+			lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 			for _, exisitingModuleDir := range exisitingModuleDirsFI {
 				// fmt.Println("adding dir: ", filepath.Join(moduleDir, exisitingModuleDir.Name()))
 				exisitingModuleDirs[filepath.Join(moduleDir, exisitingModuleDir.Name())] = empty
 			}
-			mutex.Unlock()
+			mutex.Unlock(lockID)
 		}
 
 		for gitName, gitModule := range pf.gitModules {
@@ -336,7 +336,7 @@ func resolvePuppetfile(allPuppetfiles map[string]Puppetfile) {
 					moduleDirectory = filepath.Join(normalizeDir(basedir), normalizeDir(gitModule.installPath), gitName)
 				}
 				moduleDirectory = normalizeDir(moduleDirectory)
-				mutex.Lock()
+				lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 				delete(exisitingModuleDirs, moduleDirectory)
 				for existingDir := range exisitingModuleDirs {
 					rel, _ := filepath.Rel(existingDir, moduleDirectory)
@@ -345,7 +345,7 @@ func resolvePuppetfile(allPuppetfiles map[string]Puppetfile) {
 						delete(exisitingModuleDirs, existingDir)
 					}
 				}
-				mutex.Unlock()
+				mutex.Unlock(lockID)
 				continue
 			}
 			wg.Add()
@@ -421,7 +421,7 @@ func resolvePuppetfile(allPuppetfiles map[string]Puppetfile) {
 					moduleDirectory = filepath.Join(normalizeDir(basedir), normalizeDir(gitModule.installPath), gitName)
 				}
 				moduleDirectory = normalizeDir(moduleDirectory)
-				mutex.Lock()
+				lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 				delete(exisitingModuleDirs, moduleDirectory)
 				for existingDir := range exisitingModuleDirs {
 					rel, _ := filepath.Rel(existingDir, moduleDirectory)
@@ -430,7 +430,7 @@ func resolvePuppetfile(allPuppetfiles map[string]Puppetfile) {
 						delete(exisitingModuleDirs, existingDir)
 					}
 				}
-				mutex.Unlock()
+				mutex.Unlock(lockID)
 			}(gitName, gitModule, env, pf)
 		}
 		for forgeModuleName, fm := range pf.forgeModules {
@@ -441,10 +441,10 @@ func resolvePuppetfile(allPuppetfiles map[string]Puppetfile) {
 				defer wg.Done()
 				syncForgeToModuleDir(forgeModuleName, fm, moduleDir, env)
 				// remove this module from the exisitingModuleDirs map
-				mutex.Lock()
+				lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 				mDir := filepath.Join(moduleDir, fm.name)
 				delete(exisitingModuleDirs, mDir)
-				mutex.Unlock()
+				mutex.Unlock(lockID)
 			}(forgeModuleName, fm, moduleDir, env)
 		}
 	}

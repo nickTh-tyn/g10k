@@ -169,9 +169,9 @@ func doMirrorOrUpdate(gitModule GitModule, workDir string, retryCount int) bool 
 
 func syncToModuleDir(gitModule GitModule, srcDir string, targetDir string, correspondingPuppetEnvironment string) bool {
 	startedAt := time.Now()
-	mutex.Lock()
+	lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 	syncGitCount++
-	mutex.Unlock()
+	mutex.Unlock(lockID)
 	if !isDir(srcDir) {
 		if config.UseCacheFallback {
 			Fatalf("Could not find cached git module " + srcDir)
@@ -221,14 +221,14 @@ func syncToModuleDir(gitModule GitModule, srcDir string, targetDir string, corre
 
 	}
 	if needToSync && er.returnCode == 0 {
-		mutex.Lock()
+		lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 		Infof("Need to sync " + targetDir)
 		needSyncDirs = append(needSyncDirs, targetDir)
 		if _, ok := needSyncEnvs[correspondingPuppetEnvironment]; !ok {
 			needSyncEnvs[correspondingPuppetEnvironment] = empty
 		}
 		needSyncGitCount++
-		mutex.Unlock()
+		mutex.Unlock(lockID)
 		moduleDir := "modules"
 		purgeWholeEnvDir := true
 		// check if it is a control repo and already exists
@@ -285,9 +285,9 @@ func syncToModuleDir(gitModule GitModule, srcDir string, targetDir string, corre
 			before := time.Now()
 			unTar(cmdOut, targetDir)
 			duration := time.Since(before).Seconds()
-			mutex.Lock()
+			lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 			ioGitTime += duration
-			mutex.Unlock()
+			mutex.Unlock(lockID)
 
 			err = cmd.Wait()
 			if err != nil {

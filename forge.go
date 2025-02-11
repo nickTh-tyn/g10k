@@ -195,9 +195,9 @@ func queryForgeAPI(fm ForgeModule) ForgeResult {
 	duration := time.Since(before).Seconds()
 	Verbosef("Querying Forge API " + url + " took " + strconv.FormatFloat(duration, 'f', 5, 64) + "s")
 
-	mutex.Lock()
+	lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 	syncForgeTime += duration
-	mutex.Unlock()
+	mutex.Unlock(lockID)
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
@@ -242,9 +242,9 @@ func parseForgeAPIResult(json string, fm ForgeModule) ForgeResult {
 	modulemd5sum := currentRelease["file_md5"].String()
 	moduleFilesize := currentRelease["file_size"].Int()
 
-	mutex.Lock()
+	lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 	forgeJSONParseTime += duration
-	mutex.Unlock()
+	mutex.Unlock(lockID)
 
 	if deprecatedTimestamp.Exists() && deprecatedTimestamp.Value() != nil {
 		supersededText := ""
@@ -256,9 +256,9 @@ func parseForgeAPIResult(json string, fm ForgeModule) ForgeResult {
 		if info || debug {
 			Warnf("WARN: Forge module " + fm.author + "-" + fm.name + " has been deprecated by its author since " + deprecatedTimestamp.String() + supersededText)
 		} else {
-			mutex.Lock()
+			lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 			forgeModuleDeprecationNotice += "WARN: Forge module " + fm.author + "-" + fm.name + " has been deprecated by its author since " + deprecatedTimestamp.String() + supersededText + "\n"
-			mutex.Unlock()
+			mutex.Unlock(lockID)
 		}
 	}
 
@@ -297,9 +297,9 @@ func getMetadataForgeModule(fm ForgeModule) ForgeModule {
 	resp, err := client.Do(req)
 	duration := time.Since(before).Seconds()
 	Verbosef("GETing Forge metadata from " + url + " took " + strconv.FormatFloat(duration, 'f', 5, 64) + "s")
-	mutex.Lock()
+	lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 	syncForgeTime += duration
-	mutex.Unlock()
+	mutex.Unlock(lockID)
 	if err != nil {
 		Fatalf("getMetadataForgeModule(): Error while querying metadata for Forge module " + fm.name + " from " + url + ": " + err.Error())
 	}
@@ -319,9 +319,9 @@ func getMetadataForgeModule(fm ForgeModule) ForgeModule {
 		moduleFilesize := currentRelease["file_size"].Int()
 		Debugf("module: " + fm.author + "/" + fm.name + " modulemd5sum: " + modulemd5sum + " moduleFilesize: " + strconv.FormatInt(moduleFilesize, 10))
 
-		mutex.Lock()
+		lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 		forgeJSONParseTime += duration
-		mutex.Unlock()
+		mutex.Unlock(lockID)
 
 		return ForgeModule{md5sum: modulemd5sum, fileSize: moduleFilesize}
 	}
@@ -345,9 +345,9 @@ func extractForgeModule(wgForgeModule *sync.WaitGroup, file *io.PipeReader, file
 
 	duration := time.Since(before).Seconds()
 	Verbosef("Extracting " + filepath.Join(config.ForgeCacheDir, fileName) + " took " + strconv.FormatFloat(duration, 'f', 5, 64) + "s")
-	mutex.Lock()
+	lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 	ioForgeTime += duration
-	mutex.Unlock()
+	mutex.Unlock(lockID)
 }
 
 func downloadForgeModule(name string, version string, fm ForgeModule, retryCount int) {
@@ -382,9 +382,9 @@ func downloadForgeModule(name string, version string, fm ForgeModule, retryCount
 		resp, err := client.Do(req)
 		duration := time.Since(before).Seconds()
 		Verbosef("GETing " + url + " took " + strconv.FormatFloat(duration, 'f', 5, 64) + "s")
-		mutex.Lock()
+		lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 		syncForgeTime += duration
-		mutex.Unlock()
+		mutex.Unlock(lockID)
 		if err != nil {
 			Fatalf(funcName + "(): Error while GETing Forge module " + name + " from " + url + ": " + err.Error())
 		}
@@ -461,9 +461,9 @@ func readModuleMetadata(file string) ForgeModule {
 	version := gjson.Get(string(content), "version").String()
 	author := gjson.Get(string(content), "author").String()
 	duration := time.Since(before).Seconds()
-	mutex.Lock()
+	lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 	metadataJSONParseTime += duration
-	mutex.Unlock()
+	mutex.Unlock(lockID)
 
 	Debugf("Found in file " + file + " name: " + name + " version: " + version + " author: " + author)
 
@@ -669,9 +669,9 @@ func doForgeModuleIntegrityCheck(m ForgeModule) bool {
 
 func syncForgeToModuleDir(name string, m ForgeModule, moduleDir string, correspondingPuppetEnvironment string) {
 	funcName := funcName()
-	mutex.Lock()
+	lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 	syncForgeCount++
-	mutex.Unlock()
+	mutex.Unlock(lockID)
 	moduleName := m.author + "-" + m.name
 	//Debugf("m.name " + m.name + " m.version " + m.version + " moduleName " + moduleName)
 	targetDir := filepath.Join(moduleDir, m.name)
@@ -761,13 +761,13 @@ func syncForgeToModuleDir(name string, m ForgeModule, moduleDir string, correspo
 			Fatalf("Error: Can't hardlink Forge module files over different devices. Please consider changing the cachedir setting. ForgeCachedir: " + config.ForgeCacheDir + " target dir: " + targetDir)
 		}
 
-		mutex.Lock()
+		lockID, err := mutex.Lock() ; if (err != nil) { panic(err) }
 		needSyncDirs = append(needSyncDirs, targetDir)
 		if _, ok := needSyncEnvs[correspondingPuppetEnvironment]; !ok {
 			needSyncEnvs[correspondingPuppetEnvironment] = struct{}{}
 		}
 		needSyncForgeCount++
-		mutex.Unlock()
+		mutex.Unlock(lockID)
 		destination := func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				Fatalf(funcName + "(): Error while calling generic func() Error " + err.Error())
@@ -810,9 +810,9 @@ func syncForgeToModuleDir(name string, m ForgeModule, moduleDir string, correspo
 		go func() { c <- filepath.Walk(resolvedWorkDir, destination) }()
 		<-c // Walk done
 		duration := time.Since(before).Seconds()
-		mutex.Lock()
+		lockID, err = mutex.Lock() ; if (err != nil) { panic(err) }
 		ioForgeTime += duration
-		mutex.Unlock()
+		mutex.Unlock(lockID)
 		Verbosef("Populating " + targetDir + " took " + strconv.FormatFloat(duration, 'f', 5, 64) + "s")
 	}
 }

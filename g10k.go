@@ -1,5 +1,4 @@
 package main
-
 import (
 	"flag"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/ietxaniz/delock"
 )
 
 var (
@@ -38,7 +38,7 @@ var (
 	moduleParam                  string
 	configFile                   string
 	config                       ConfigSettings
-	mutex                        sync.Mutex
+	mutex                        delock.Mutex
 	empty                        struct{}
 	syncGitCount                 int
 	syncForgeCount               int
