@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
+	// "sync"
 	"time"
 	"github.com/ietxaniz/delock"
 )
@@ -64,7 +64,7 @@ var (
 // LatestForgeModules contains a map of unique Forge modules
 // that should be the latest versions of them
 type LatestForgeModules struct {
-	sync.RWMutex
+	delock.RWMutex
 	m map[string]string
 }
 
