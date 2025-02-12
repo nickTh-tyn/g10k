@@ -1,0 +1,43 @@
+## Build and run like:
+# podman build -t g10k:test -f Dockerfile.trixie .
+# podman run --rm g10k:test
+
+
+FROM debian:sid-slim as builder
+
+RUN set -ex \
+    && sed -i -- 's/Types: deb/Types: deb deb-src/g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    build-essential \
+    cdbs \
+    devscripts \
+    equivs \
+    fakeroot \
+    && apt-get clean \
+    && rm -rf /tmp/* /var/tmp/*
+
+
+WORKDIR /usr/src/
+RUN apt source g10k
+RUN apt build-dep -y g10k
+WORKDIR /usr/src/g10k-0.9.9/
+
+# copy local project files over debian src package's:
+COPY . /usr/src/g10k-local
+RUN cp -r /usr/src/g10k-local/* ./
+
+RUN dpkg-buildpackage -b -uc -us
+ENTRYPOINT [ "/bin/bash" ]
+
+
+
+FROM debian:sid-slim
+RUN apt-get update
+COPY --from=builder /usr/src/g10k_0.9.9-2_amd64.deb ./
+# RUN apt install -y ./g10k_0.9.9-2_amd64.deb
+RUN apt install -y libc6 git
+RUN dpkg -i g10k_0.9.9-2_amd64.deb
+
+ENTRYPOINT [ "/usr/bin/g10k" ]
+CMD ["-version"]
