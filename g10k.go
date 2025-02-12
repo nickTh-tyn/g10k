@@ -10,6 +10,9 @@ import (
 	// "sync"
 	"time"
 	"github.com/ietxaniz/delock"
+	"log"
+    "net/http"
+    _ "net/http/pprof"
 )
 
 var (
@@ -219,6 +222,8 @@ func init() {
 }
 
 func main() {
+    // start pprof at seperate thread:
+	go func() { log.Println(http.ListenAndServe("localhost:6060", nil)) }()
 
 	var (
 		configFileFlag = flag.String("config", "", "which config file to use")
