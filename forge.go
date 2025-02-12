@@ -85,9 +85,9 @@ func doModuleInstallOrNothing(fm ForgeModule) {
 						Debugf("No need to check forge API if latest version of module " + moduleName + " has been updated, because last-checked file " + lastCheckedFile + " is not older than " + fm.cacheTTL.String())
 						// need to add the current (cached!) -latest version number to the latestForgeModules, because otherwise we would always sync this module, because 1.4.1 != -latest
 						me := readModuleMetadata(workDir + "/metadata.json")
-						lockID, err := latestForgeModules.Lock() ; if (err != nil) { panic(err) }
+						lockID, err := latestForgeModules.mutex.Lock() ; if (err != nil) { panic(err) }
 						latestForgeModules.m[moduleName] = me.version
-						latestForgeModules.Unlock(lockID)
+						latestForgeModules.mutex.Unlock(lockID)
 
 						if checkDeprecation(fm, lastCheckedFile) {
 							return
@@ -267,9 +267,9 @@ func parseForgeAPIResult(json string, fm ForgeModule) ForgeResult {
 	}
 
 	Debugf("found version " + version + " for " + fm.name + "-latest")
-	lockID, err = latestForgeModules.Lock() ; if (err != nil) { panic(err) }
+	lockID, err = latestForgeModules.mutex.Lock() ; if (err != nil) { panic(err) }
 	latestForgeModules.m[fm.author+"-"+fm.name] = version
-	latestForgeModules.Unlock(lockID)
+	latestForgeModules.mutex.Unlock(lockID)
 
 	return ForgeResult{true, version, modulemd5sum, moduleFilesize}
 }
@@ -681,9 +681,9 @@ func syncForgeToModuleDir(name string, m ForgeModule, moduleDir string, correspo
 			Debugf("Nothing to do, found existing Forge module: " + targetDir)
 			if check4update {
 				me := readModuleMetadata(metadataFile)
-				lockID, err := latestForgeModules.RLock() ; if (err != nil) { panic(err) }
+				lockID, err := latestForgeModules.mutex.RLock() ; if (err != nil) { panic(err) }
 				check4ForgeUpdate(m.name, me.version, latestForgeModules.m[moduleName])
-				latestForgeModules.RUnlock(lockID)
+				latestForgeModules.mutex.RUnlock(lockID)
 			}
 			return
 		}
@@ -697,17 +697,17 @@ func syncForgeToModuleDir(name string, m ForgeModule, moduleDir string, correspo
 			if m.version == "latest" {
 				//fmt.Println(latestForgeModules)
 				//fmt.Println("checking latestForgeModules for key", moduleName)
-				lockID, err := latestForgeModules.RLock() ; if (err != nil) { panic(err) }
+				lockID, err := latestForgeModules.mutex.RLock() ; if (err != nil) { panic(err) }
 				if _, ok := latestForgeModules.m[moduleName]; ok {
 					Debugf("using version " + latestForgeModules.m[moduleName] + " for " + moduleName + "-" + m.version)
 					m.version = latestForgeModules.m[moduleName]
 				}
-				latestForgeModules.RUnlock(lockID)
+				latestForgeModules.mutex.RUnlock(lockID)
 			}
 			if check4update {
-				lockID, err := latestForgeModules.RLock() ; if (err != nil) { panic(err) }
+				lockID, err := latestForgeModules.mutex.RLock() ; if (err != nil) { panic(err) }
 				check4ForgeUpdate(m.name, me.version, latestForgeModules.m[moduleName])
-				latestForgeModules.RUnlock(lockID)
+				latestForgeModules.mutex.RUnlock(lockID)
 			}
 			if me.version == m.version {
 				Debugf("Nothing to do, existing Forge module: " + targetDir + " has the same version " + me.version + " as the to be synced version: " + m.version)
@@ -869,9 +869,9 @@ func getLatestCachedModule(m ForgeModule) string {
 	}
 
 	//fmt.Println("version: ", version)
-	lockID, err := latestForgeModules.Lock() ; if (err != nil) { panic(err) }
+	lockID, err := latestForgeModules.mutex.Lock() ; if (err != nil) { panic(err) }
 	latestForgeModules.m[m.author+"-"+m.name] = version
-	latestForgeModules.Unlock(lockID)
+	latestForgeModules.mutex.Unlock(lockID)
 
 	Warnf("Using cached version " + version + " for " + m.author + "-" + m.name + "-latest")
 

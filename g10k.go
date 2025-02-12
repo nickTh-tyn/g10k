@@ -67,7 +67,7 @@ var (
 // LatestForgeModules contains a map of unique Forge modules
 // that should be the latest versions of them
 type LatestForgeModules struct {
-	delock.RWMutex
+	mutex delock.RWMutex
 	m map[string]string
 }
 
