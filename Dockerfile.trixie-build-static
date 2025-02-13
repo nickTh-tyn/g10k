@@ -1,0 +1,46 @@
+## Build and run like:
+# podman build -t g10k:test -f Dockerfile.trixie .
+# podman run --rm g10k:test
+
+# podman run --rm -it --entrypoint /bin/sh g10k:test
+# podman ps
+# podman cp <container id>:/usr/local/bin/g10k ./g10k
+
+
+FROM debian:trixie-slim as builder
+
+RUN set -ex \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    build-essential \
+    git \
+    golang \
+    && apt-get clean \
+    && rm -rf /tmp/* /var/tmp/*
+
+# copy local project files:
+COPY . /usr/src/g10k
+WORKDIR /usr/src/g10k
+RUN make clean
+RUN go clean -cache \
+    && go clean -testcache   
+RUN go get -u
+RUN go mod vendor
+
+RUN go clean -cache \
+    && go clean -testcache \
+    && export CGO_ENABLED=0 \
+    && BUILDTIME=$(date -u '+%Y-%m-%d_%H:%M:%S') \
+    && BUILDVERSION=$(git describe --tags) \
+    && go build -ldflags "-X main.buildtime=${BUILDTIME} -X main.buildversion=${BUILDVERSION}"
+
+
+ENTRYPOINT [ "/bin/bash" ]
+
+
+
+FROM debian:trixie-slim
+COPY --from=builder /usr/src/g10k/g10k /usr/local/bin/g10k
+ENTRYPOINT [ "/usr/local/bin/g10k" ]
+CMD ["-version"]
